@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Batalha de Inscritos - Tela</title>
+    <style>
+        body { background-color: #1a1a24; background-size: cover; background-position: center; overflow: hidden; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; transition: background 0.5s ease;}
+
+        #overlay-countdown {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.7); z-index: 1000;
+            display: none; justify-content: center; align-items: center;
+            font-size: 15rem; font-weight: 900; color: #f39c12;
+            text-shadow: 0 0 40px #f39c12, 0 0 10px #fff;
+            animation: pulseCount 0.5s infinite alternate;
+            text-transform: uppercase;
+        }
+        @keyframes pulseCount { from { transform: scale(1); } to { transform: scale(1.15); } }
+
+        #game-view { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; overflow: hidden; cursor: grab; }
+        #game-view:active { cursor: grabbing; }
+        #game-zoom-area { width: 100%; height: 100%; position: absolute; top: 0; left: 0; transform-origin: top center; transition: transform 0.2s ease-out; }
+
+        /* --- ESTILOS DA BATALHA (ADAPTADO TIKTOK) --- */
+        .vs-bar-container { position: absolute; top: 12%; left: 50%; transform: translateX(-50%); width: 95%; height: 50px; background: #222; border: 3px solid #fff; border-radius: 25px; display: flex; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 100; }
+        .vs-bar-1 { height: 100%; width: 50%; background: linear-gradient(90deg, #0984e3, #74b9ff); transition: width 0.3s ease; }
+        .vs-bar-2 { height: 100%; width: 50%; background: linear-gradient(90deg, #ff7675, #d63031); transition: width 0.3s ease; }
+        .vs-text { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 2.5rem; font-weight: 900; font-style: italic; color: #ffeaa7; text-shadow: 0 0 10px #000, 3px 3px 0px #d63031; z-index: 10; }
+        .pts-text { position: absolute; top: 50%; transform: translateY(-50%); font-size: 1.8rem; font-weight: 900; color: white; text-shadow: 0 3px 6px black; z-index: 5; }
+        .pts-text.left { left: 15px; }
+        .pts-text.right { right: 15px; }
+
+        /* Tags dos Poderes Individuais */
+        .poder-ativo { font-size: 1.2rem; color: #fff; font-weight: bold; position: absolute; top: 7%; background: rgba(0,0,0,0.8); padding: 2px 10px; border-radius: 8px; z-index: 110; display: none; text-shadow: 0 0 5px black;}
+        .poder-ativo.left { left: 5%; border: 2px solid #0984e3; }
+        .poder-ativo.right { right: 5%; border: 2px solid #d63031; }
+
+        .lutadores-area { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); width: 98%; display: flex; justify-content: space-around; align-items: center; z-index: 50; }
+        .lutador-box { display: flex; flex-direction: column; align-items: center; position: relative; width: 45%; }
+        /* Avatares redimensionam com a largura da tela (vw) */
+        .lutador-box img { width: 40vw; max-width: 180px; height: 40vw; max-height: 180px; border-radius: 50%; object-fit: cover; border: 6px solid #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.8); transition: transform 0.2s; background: #111;}
+        .lutador-box.left img { border-color: #0984e3; box-shadow: 0 0 40px rgba(9, 132, 227, 0.7); }
+        .lutador-box.right img { border-color: #d63031; box-shadow: 0 0 40px rgba(214, 48, 49, 0.7); }
+        .lutador-nome { margin-top: 15px; font-size: 1.5rem; font-weight: 900; background: rgba(0,0,0,0.9); padding: 5px 15px; border-radius: 12px; text-transform: uppercase; border: 2px solid #555; text-align: center; width: 90%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+
+        .tempo-batalha { position: absolute; top: 3%; left: 50%; transform: translateX(-50%); font-size: 3.5rem; font-weight: 900; color: #f1c40f; text-shadow: 0 0 15px rgba(0, 0, 0, 0.8), 0 0 5px rgba(243, 156, 18, 0.8); z-index: 100; }
+
+        .apoiador-podio { display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 10px; border: 1px solid #444; width: 28vw; max-width: 100px;}
+        .apoiador-podio img { width: 12vw; max-width: 50px; height: 12vw; max-height: 50px; border-radius: 50%; margin-bottom: 5px; border: 2px solid gold; }
+        .apoiador-podio .nick { font-size: 0.8rem; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;}
+        .apoiador-podio .pts { font-size: 0.9rem; color: gold; font-weight: 900;}
+
+        .fila-container { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); width: 95%; background: rgba(0,0,0,0.85); border: 2px solid #30363d; border-radius: 15px; padding: 10px; z-index: 200; display: flex; flex-direction: column; box-sizing: border-box;}
+        .fila-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: thin; scrollbar-color: #f39c12 #222; }
+        .fila-item { display: flex; flex-direction: column; align-items: center; background: rgba(255,255,255,0.1); padding: 8px; border-radius: 12px; min-width: 75px; position: relative; }
+        .fila-item img { width: 50px; height: 50px; border-radius: 50%; border: 3px solid #ccc; object-fit: cover; }
+        .fila-item .nick { font-size: 0.85rem; font-weight: bold; margin-top: 5px; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fila-item .pts { color: gold; font-size: 1rem; font-weight: 900; }
+        .fila-item .tag-time { position: absolute; top: -6px; right: -6px; font-size: 0.7rem; font-weight: 900; padding: 2px 6px; border-radius: 6px; }
+        .fila-item .tag-time.t1 { background: #0984e3; color: white; border: 2px solid white;}
+        .fila-item .tag-time.t2 { background: #d63031; color: white; border: 2px solid white;}
+
+        .explosao-overlay { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: radial-gradient(circle, rgba(255,71,87,0.8) 0%, rgba(0,0,0,0) 80%); opacity: 0; pointer-events: none; z-index: 50; transition: opacity 0.2s;}
+        .avatar-boom-center { position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%) scale(0.1); font-size: 180px; z-index: 999; pointer-events: none; animation: centerBoom 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; filter: drop-shadow(0 0 30px rgba(255, 69, 0, 1)); }
+        @keyframes centerBoom { 0% { transform: translate(-50%, -50%) scale(0.1) rotate(-20deg); opacity: 1; } 50% { transform: translate(-50%, -50%) scale(2.5) rotate(10deg); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(3.5) rotate(20deg); opacity: 0; } }
+
+        .tela-vencedor { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px); z-index: 900; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
+        .tela-vencedor.show { opacity: 1; pointer-events: auto; }
+        .titulo-vencedor { font-size: 5rem; color: gold; font-weight: 900; margin-bottom: 20px; text-shadow: 0 0 20px gold, 0 0 40px darkgoldenrod; text-transform: uppercase; animation: bounce 1s infinite alternate; text-align: center;}
+        .vencedor-avatar { width: 180px; height: 180px; border-radius: 50%; border: 8px solid gold; box-shadow: 0 0 30px gold; object-fit: cover; margin-bottom: 15px; }
+        .vencedor-nick { font-size: 2.5rem; font-weight: bold; background: #111; padding: 10px 30px; border-radius: 20px; border: 2px solid gold; margin-bottom: 30px; text-align: center; }
+        .vencedor-stats { display: flex; gap: 40px; text-align: center; }
+        .stat-box { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.2); min-width: 200px; max-width: 400px; }
+        .stat-box h3 { margin: 0 0 10px 0; color: #2ed573; font-size: 1.5rem; }
+        .stat-box p { margin: 0; font-size: 2rem; color: white; font-weight: bold; word-wrap: break-word; }
+        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-10px); } }
+
+        .aviso-popup { position: absolute; top: 70%; left: 50%; transform: translate(-50%, -50%); background: rgba(255, 71, 87, 0.95); color: white; padding: 15px 40px; border-radius: 12px; font-size: 2rem; font-weight: 900; letter-spacing: 2px; z-index: 9999; opacity: 0; pointer-events: none; transition: opacity 0.2s; border: 3px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-transform: uppercase; }
+
+        #ranking-view { display: none; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; flex-direction: column; align-items: center; justify-content: center; z-index: 800; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); }
+        .ranking-title { font-size: 4rem; font-weight: 900; margin-bottom: 10px; text-transform: uppercase; text-shadow: 0 0 20px rgba(255,255,255,0.5); display: flex; align-items: center; gap: 20px; }
+        .ranking-subtitle { font-size: 1.5rem; font-weight: bold; color: #f39c12; margin-bottom: 25px; background: rgba(0,0,0,0.8); padding: 5px 20px; border-radius: 20px; border: 1px solid #f39c12;}
+        .ranking-list { background: rgba(20, 25, 35, 0.9); border: 2px solid #444; border-radius: 20px; width: 80%; max-width: 800px; padding: 20px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
+        .rank-item { display: flex; align-items: center; background: rgba(255,255,255,0.05); padding: 15px 25px; border-radius: 12px; border-left: 5px solid transparent; transition: transform 0.2s; }
+        .rank-item:hover { transform: scale(1.02); background: rgba(255,255,255,0.1); }
+        .rank-pos { font-size: 2rem; font-weight: 900; width: 50px; text-align: center; color: #888; }
+        .rank-item.pos-1 { border-left-color: gold; background: linear-gradient(90deg, rgba(255,215,0,0.2) 0%, rgba(0,0,0,0) 100%); }
+        .rank-item.pos-1 .rank-pos { color: gold; }
+        .rank-item.pos-2 { border-left-color: silver; }
+        .rank-item.pos-2 .rank-pos { color: silver; }
+        .rank-item.pos-3 { border-left-color: #cd7f32; }
+        .rank-item.pos-3 .rank-pos { color: #cd7f32; }
+        .rank-name { flex: 1; font-size: 1.8rem; font-weight: bold; margin-left: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .rank-score { font-size: 2rem; font-weight: 900; color: #f39c12; }
+    </style>
+</head>
+<body>
+
+    <div id="overlay-countdown">5</div>
+    <div class="explosao-overlay" id="flash-explosao"></div>
+    <div class="aviso-popup" id="aviso-popup">Aviso!</div>
+
+    <div class="tela-vencedor" id="tela-vencedor">
+        <div class="titulo-vencedor" id="titulo-vencedor">🏆 VENCEDOR! 🏆</div>
+        <img id="vencedor-avatar" class="vencedor-avatar" src="">
+        <div class="vencedor-nick" id="vencedor-nick" style="margin-bottom: 5px;">...</div>
+        <div style="font-size: 2.5rem; color: #f1c40f; font-weight: bold; margin-bottom: 25px; text-shadow: 0 0 10px #f1c40f;" id="vencedor-streak">🔥 1 Vitórias Seguidas 🔥</div>
+
+        <h3 style="color: #2ed573; font-size: 1.5rem; margin-bottom: 15px; text-transform: uppercase;">Top 3 Apoiadores da Luta</h3>
+        <div class="vencedor-stats" id="vencedor-apoiadores" style="display: flex; gap: 15px; justify-content: center;">
+            <!-- Apoiadores entram aqui dinamicamente via JS -->
+        </div>
+    </div>
+
+    <div id="ranking-view">
+        <div class="ranking-title" id="ranking-title">🏆 TOP APOIADORES 🏆</div>
+        <div class="ranking-subtitle" id="ranking-subtitle">PERÍODO</div>
+        <div class="ranking-list" id="ranking-list"></div>
+    </div>
+
+    <div id="game-view">
+        <div id="game-zoom-area">
+            <!-- ARENA PRINCIPAL (Sempre Visível) -->
+            <div id="arena-batalha" style="width: 100%; height: 100%; position: relative; z-index: 1;">
+
+                <!-- FUNDOS DINÂMICOS (Cabo de Guerra - 30% Opacidade) -->
+                <div id="bg-arena-1" style="position: absolute; top: 0; left: 0; width: 50%; height: 100%; background-size: cover; background-position: center; opacity: 0.3; transition: width 0.3s ease; z-index: -1;"></div>
+                <div id="bg-arena-2" style="position: absolute; top: 0; right: 0; width: 50%; height: 100%; background-size: cover; background-position: center; opacity: 0.3; transition: width 0.3s ease; z-index: -1;"></div>
+
+                <!-- TAGS DE PODER ACIMA DA BARRA -->
+                <div class="poder-ativo left" id="poder-1"></div>
+                <div class="poder-ativo right" id="poder-2"></div>
+
+                <!-- INSTRUÇÕES DO CHAT (1 e 2) -->
+                <div style="position: absolute; top: 9.5%; left: 50%; transform: translateX(-50%); width: 92%; display: flex; justify-content: space-between; z-index: 105; padding: 0 10px; box-sizing: border-box; text-transform: uppercase;">
+                    <div style="font-size: 1.1rem; font-weight: 900; color: #fff; text-shadow: 0 2px 5px #000, 0 0 15px #0984e3;">Envie 1 no chat 👇</div>
+                    <div style="font-size: 1.1rem; font-weight: 900; color: #fff; text-shadow: 0 2px 5px #000, 0 0 15px #d63031;">👇 Envie 2 no chat</div>
+                </div>
+
+                <!-- Barra de Vida -->
+                <div class="vs-bar-container">
+                    <div class="vs-bar-1" id="bar-1"></div>
+                    <div class="vs-bar-2" id="bar-2"></div>
+                    <div class="vs-text" id="multiplicador-txt">VS</div>
+                    <div class="pts-text left" id="pts-1">0</div>
+                    <div class="pts-text right" id="pts-2">0</div>
+                </div>
+
+                <!-- Os Dois Lutadores -->
+                <div class="lutadores-area">
+                    <div class="lutador-box left">
+                        <img id="img-lutador1" src="https://api.dicebear.com/7.x/bottts/svg?seed=Lutador1">
+                        <div class="lutador-nome" id="nome-lutador1">AGUARDANDO</div>
+                    </div>
+                    <div class="lutador-box right">
+                        <img id="img-lutador2" src="https://api.dicebear.com/7.x/bottts/svg?seed=Lutador2">
+                        <div class="lutador-nome" id="nome-lutador2">AGUARDANDO</div>
+                    </div>
+                </div>
+
+                <!-- Cronômetro da Batalha (Agora fica lá no topo!) -->
+                <div class="tempo-batalha" id="tempo-batalha">PREPARANDO...</div>
+            </div>
+
+            <!-- FILA DE DESAFIANTES -->
+            <div id="fila-batalha" class="fila-container">
+                <div style="text-align: center; font-weight: bold; margin-bottom: 5px; color: #f39c12; font-size: 1.5rem;">🔥 PRÓXIMOS DESAFIANTES 🔥</div>
+                <div class="fila-scroll" id="fila-scroll"></div>
+            </div>
+        </div>
+    </div>
+
+    <button onclick="document.getElementById('hud-janela-painel').style.display='flex'" style="position: absolute; top: 15px; left: 15px; z-index: 1500; background: #3498db; color: white; border: 2px solid #fff; padding: 10px 15px; font-weight: bold; border-radius: 5px; cursor: pointer; box-shadow: 0 0 10px rgba(52, 152, 219, 0.8);">⚙️ PAINEL</button>
+
+    <div id="hud-janela-painel" style="position: absolute; top: 60px; left: 15px; width: calc(100vw - 30px); max-width: 450px; height: 85vh; background: rgba(13, 17, 23, 0.95); border: 2px solid #3498db; border-radius: 10px; z-index: 2000; display: none; flex-direction: column; overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.8);">
+        <div style="background: #3498db; padding: 10px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 5px;">
+            <span>⚙️ Controle Host</span>
+            <div style="display: flex; gap: 5px;">
+                <button onclick="window.open('Painel_do_Host.html', '_blank'); document.getElementById('hud-janela-painel').style.display='none';" style="background: #2c3e50; border: none; color: white; padding: 5px 10px; cursor: pointer; border-radius: 5px; font-weight: bold;">↗️ Abrir Aba</button>
+                <button onclick="document.getElementById('hud-janela-painel').style.display='none'" style="background: #ff4757; border: none; color: white; padding: 5px 15px; cursor: pointer; border-radius: 5px; font-weight: bold;">X</button>
+            </div>
+        </div>
+        <iframe src="Painel_do_Host.html" style="width: 100%; height: 100%; border: none;"></iframe>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('u') && urlParams.has('p')) {
+            localStorage.setItem('rdm_user', urlParams.get('u'));
+            localStorage.setItem('rdm_perfil', urlParams.get('p'));
+        }
+
+        window.rdmUser = localStorage.getItem('rdm_user_tiktok') || localStorage.getItem('rdm_user');
+        window.rdmPerfil = localStorage.getItem('rdm_perfil');
+
+        if (!window.rdmUser || !window.rdmPerfil) {
+            document.body.innerHTML = "<div style='display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; background:#000;'><h1 style='color:#ef4444; text-shadow:0 0 20px #ef4444;'>ACESSO NEGADO</h1><p style='color:#ccc; font-size:20px;'>Você precisa estar logado na RDM Studio para jogar.</p></div>";
+            window.stop();
+        }
+
+        fetch("https://torre-de-controle-rdm.onrender.com/", { mode: 'no-cors' }).catch(() => {});
+
+        // ESTADO GLOBAL DO JOGO
+        let jogo = {
+            ativo: false, iniciando: false, jogadores_plateia: [], dados_jogadores: {},
+            tempo_restante: 0, tempo_rodada_atual: 180, tempo_inicio: 0, lastCmdTs: 0, config: {},
+            lutador1: null, lutador2: null,
+            pontos1: 0, pontos2: 0,
+            // Poderes são locais agora (pertencem ao lado 1 ou lado 2 da arena)
+            poderes: {
+                1: { mult: 1, fim: 0, nome: "" },
+                2: { mult: 1, fim: 0, nome: "" }
+            }
+        };
+        let espectadoresRecentes = {};
+
+        function atualizarConfig() { let cfgStr = localStorage.getItem('daazConfig'); if(cfgStr) jogo.config = JSON.parse(cfgStr); }
+        atualizarConfig(); setInterval(atualizarConfig, 1000);
+
+        setInterval(() => {
+            localStorage.setItem('daazState', JSON.stringify({ jogadores: jogo.jogadores_plateia, espectadores: espectadoresRecentes, dados_jogadores: jogo.dados_jogadores, display_mode: jogo.display_mode, display_periodo: jogo.display_periodo }));
+        }, 1000);
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let zoomLevel = 1.0, translateX = 0, translateY = 0, isDragging = false, startX, startY;
+        const gameView = document.getElementById('game-view');
+        const zoomArea = document.getElementById('game-zoom-area');
+
+        function updateTransform() { zoomArea.style.transform = `translate(${translateX}px, ${translateY}px) scale(${zoomLevel})`; }
+
+        gameView.addEventListener('mousedown', (e) => { isDragging = true; startX = e.clientX - translateX; startY = e.clientY - translateY; });
+        window.addEventListener('mousemove', (e) => { if (!isDragging) return; translateX = e.clientX - startX; translateY = e.clientY - startY; updateTransform(); });
+        window.addEventListener('mouseup', () => { isDragging = false; });
+        window.addEventListener('wheel', (e) => {
+            if (gameView.style.display !== 'none') {
+                e.preventDefault();
+                zoomLevel = e.deltaY < 0 ? Math.min(zoomLevel + 0.1, 3.0) : Math.max(zoomLevel - 0.1, 0.4);
+                updateTransform();
+            }
+        }, { passive: false });
+
+        const audioExplosaoMp3 = new Audio('explosion.mp3');
+        audioExplosaoMp3.volume = 0.08;
+
+        function playTick(freq) {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+            osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function playError() {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.type = 'square'; osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+            osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.2);
+        }
+
+        function playVictory() {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+            [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                osc.type = 'triangle'; osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0, now + i * 0.15);
+                gain.gain.linearRampToValueAtTime(0.3, now + i * 0.15 + 0.05);
+                gain.gain.linearRampToValueAtTime(0, now + i * 0.15 + 0.4);
+                osc.start(now + i * 0.15); osc.stop(now + i * 0.15 + 0.4);
+            });
+        }
+
+        function spawnCenterExplosion() {
+            audioExplosaoMp3.currentTime = 0; audioExplosaoMp3.play().catch(()=>{});
+            const boom = document.createElement('div'); boom.className = 'avatar-boom-center'; boom.innerText = '💥';
+            document.body.appendChild(boom);
+            boom.style.left = ((window.innerWidth / 2) + translateX) + 'px';
+            boom.style.top = ((window.innerHeight * 0.38) + translateY) + 'px';
+            boom.style.transform = `translate(-50%, -50%) scale(${zoomLevel * 0.1})`;
+            setTimeout(() => boom.remove(), 800);
+        }
+
+        function dispararEfeito(tipo, dados) {
+            if (tipo === 'explosao_avatar') { spawnCenterExplosion(); return; }
+            if (tipo === 'game_over') { exibirVencedor(dados); return; }
+            if (tipo === 'aviso') {
+                const aviso = document.getElementById('aviso-popup');
+                aviso.innerText = dados; aviso.style.opacity = '1';
+                setTimeout(() => { aviso.style.opacity = '0'; }, 2500);
+                return;
+            }
+            if (tipo === 'countdown') {
+                const ov = document.getElementById('overlay-countdown');
+                ov.style.display = 'flex'; ov.innerText = dados;
+                // Mudamos de BORAAAA! para FIGHT! para ele saber a hora de apagar a tela
+                if(dados === "FIGHT!") {
+                    playTick(1000);
+                    setTimeout(() => playTick(1200), 150);
+                    setTimeout(() => { ov.style.display = 'none'; }, 1000);
+                }
+                else {
+                    playTick(600);
+                }
+                return;
+            }
+        }
+
+        function iniciarBatalha() {
+            jogo.ativo = true;
+            jogo.pontos1 = 0;
+            jogo.pontos2 = 0;
+            jogo.tempo_restante = parseInt(jogo.config.tempo_rodada) || 180;
+
+            // Inicia poderes independentes para Lado 1 e Lado 2
+            jogo.poderes = {
+                1: { mult: 1, fim: 0, nome: "" },
+                2: { mult: 1, fim: 0, nome: "" }
+            };
+            jogo.apoiadores_batalha = {}; // Zera os apoiadores da rodada atual
+
+            dispararEfeito('aviso', "⚔️ A BATALHA COMEÇOU! ⚔️");
+            atualizarTela();
+        }
+
+        function encerrarBatalha() {
+            jogo.ativo = false;
+            let vencedor = null;
+            let perdedor = null;
+
+            if (jogo.pontos1 > jogo.pontos2) { vencedor = jogo.lutador1; perdedor = jogo.lutador2; }
+            else if (jogo.pontos2 > jogo.pontos1) { vencedor = jogo.lutador2; perdedor = jogo.lutador1; }
+            else { vencedor = jogo.lutador1; perdedor = jogo.lutador2; } // Empate: O Rei mantém a mesa
+
+            // Verifica a Sequência de Vitórias (Win Streak)
+            if (vencedor === jogo.lutador1) {
+                jogo.wins_seguidas = (jogo.wins_seguidas || 0) + 1;
+            } else {
+                jogo.wins_seguidas = 1;
+            }
+
+            // Separa os Top 3 Apoiadores desta Batalha Específica
+            let topApoiadores = Object.entries(jogo.apoiadores_batalha || {})
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3)
+                .map(item => ({ nick: item[0], pts: item[1], avatar: jogo.dados_jogadores[item[0]]?.avatar || '' }));
+
+            // Mostra Tela de Vitória
+            let d = {
+                nick: vencedor,
+                avatar: jogo.dados_jogadores[vencedor]?.avatar,
+                streak: jogo.wins_seguidas,
+                apoiadores: topApoiadores
+            };
+            dispararEfeito('game_over', d);
+
+            // O Perdedor zera os pontos da fila e volta pro fim dela
+            if (perdedor) {
+                jogo.dados_jogadores[perdedor].pontos_fila = 0;
+                jogo.dados_jogadores[perdedor].lado = 0;
+                jogo.jogadores_plateia.push(perdedor);
+            }
+
+            // Salva as Estatísticas nos Rankings (Vitórias Gerais e a Maior Sequência de Wins)
+            if (vencedor) {
+                addRanking("vitorias_gerais", vencedor, 1);
+                addRankingRecorde("max_wins_seguidas", vencedor, jogo.wins_seguidas);
+            }
+
+            // O Vencedor assume a posição 1 (Rei da Mesa)
+            if (vencedor === jogo.lutador2) {
+                jogo.lutador1 = jogo.lutador2;
+                jogo.dados_jogadores[jogo.lutador1].lado = 1;
+            }
+
+            // Puxa o próximo desafiante da fila
+            jogo.lutador2 = null;
+            if (jogo.jogadores_plateia.length > 0) {
+                atualizarHierarquia();
+                jogo.lutador2 = jogo.jogadores_plateia.shift();
+                jogo.dados_jogadores[jogo.lutador2].lado = 2;
+                jogo.dados_jogadores[jogo.lutador2].pontos_fila = 0;
+            }
+
+            atualizarTela();
+        }
+
+        function exibirVencedor(dados) {
+            playVictory();
+            const tela = document.getElementById('tela-vencedor');
+
+            if (dados) {
+                document.getElementById('titulo-vencedor').innerText = "🏆 VENCEDOR! 🏆";
+                document.getElementById('vencedor-avatar').style.display = 'block';
+                document.getElementById('vencedor-avatar').src = dados.avatar;
+                document.getElementById('vencedor-nick').innerText = dados.nick;
+                document.getElementById('vencedor-streak').innerText = `🔥 ${dados.streak} Vitórias Seguidas 🔥`;
+
+                let divApoiadores = document.getElementById('vencedor-apoiadores');
+                divApoiadores.innerHTML = '';
+
+                if (dados.apoiadores && dados.apoiadores.length > 0) {
+                    dados.apoiadores.forEach(ap => {
+                        divApoiadores.innerHTML += `
+                            <div class="apoiador-podio">
+                                <img src="${ap.avatar}">
+                                <div class="nick">${ap.nick}</div>
+                                <div class="pts">${Math.floor(ap.pts)} pts</div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    divApoiadores.innerHTML = '<div style="color:#ccc; font-size:1.2rem;">A Luta foi ganha sem ajuda!</div>';
+                }
+            } else {
+                document.getElementById('titulo-vencedor').innerText = "💀 FIM DE JOGO 💀";
+                document.getElementById('vencedor-avatar').style.display = 'none';
+                document.getElementById('vencedor-nick').innerText = "A arena está vazia!";
+                document.getElementById('vencedor-streak').innerText = "";
+                document.getElementById('vencedor-apoiadores').innerHTML = "";
+            }
+
+            tela.classList.add('show');
+            translateX = 0;
+            translateY = 0;
+            zoomLevel = 1.0;
+            updateTransform();
+
+            setTimeout(() => { tela.classList.remove('show'); }, 8000);
+        }
+
+        // --- NOVA FUNÇÃO PARA SALVAR RECORDE MÁXIMO ---
+        function addRankingRecorde(categoria, nick, valorAtual) {
+            try {
+                let rStr = localStorage.getItem('daazRankings');
+                let rankings = rStr ? JSON.parse(rStr) : { diario: {}, semanal: {}, mensal: {}, geral: {} };
+                checkRankingResets(rankings);
+                let safeNick = nick.replace(/[.#$\[\]\/]/g, "_");
+
+                ['diario', 'semanal', 'mensal', 'geral'].forEach(periodo => {
+                    if(!rankings[periodo][categoria]) rankings[periodo][categoria] = {};
+                    let maxSalvo = rankings[periodo][categoria][safeNick] || 0;
+                    if (valorAtual > maxSalvo) {
+                        rankings[periodo][categoria][safeNick] = valorAtual;
+                    }
+                });
+                localStorage.setItem('daazRankings', JSON.stringify(rankings));
+                if (typeof window.fbcPushRankings === "function") { try { window.fbcPushRankings(rankings); } catch(err) {} }
+            } catch(e) {}
+        }
+
+        function renderizarRankingUI(titulo, dicionarioDados, corScore, sulfixo, periodoTexto) {
+            document.getElementById('ranking-title').innerHTML = titulo;
+            document.getElementById('ranking-subtitle').innerText = periodoTexto;
+            const lista = document.getElementById('ranking-list'); lista.innerHTML = '';
+            const arrayOrdenado = Object.entries(dicionarioDados).sort((a, b) => b[1] - a[1]).slice(0, 10);
+            if (arrayOrdenado.length === 0) { lista.innerHTML = '<div style="text-align:center; padding: 40px; font-size: 2rem; color: #888;">Ainda não há registos!</div>'; return; }
+            arrayOrdenado.forEach((item, index) => {
+                const nick = item[0]; const score = item[1]; const pos = index + 1;
+                let medalha = pos; if(pos===1) medalha = '🥇'; if(pos===2) medalha = '🥈'; if(pos===3) medalha = '🥉';
+
+                // Resgata a foto salva ou usa uma genérica
+                let avatar = jogo.dados_jogadores[nick]?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${nick}`;
+
+                const div = document.createElement('div'); div.className = `rank-item pos-${pos}`;
+                div.innerHTML = `
+                    <div class="rank-pos">${medalha}</div>
+                    <img src="${avatar}" style="width: 50px; height: 50px; border-radius: 50%; margin: 0 15px; border: 2px solid ${corScore}; object-fit: cover; background: #222;">
+                    <div class="rank-name">${nick}</div>
+                    <div class="rank-score" style="color: ${corScore}">${Math.floor(score)} ${sulfixo}</div>
+                `;
+                lista.appendChild(div);
+            });
+        }
+
+        function renderizarFilaVisual(jogo, dados) {
+            const container = document.getElementById('fila-scroll');
+            if(!container) return;
+            container.innerHTML = '';
+            jogo.jogadores_plateia.forEach(nick => {
+                let p = dados[nick];
+                if (!p || p.pontos_fila <= 0) return; // REGRA: Menor ou igual a 0 não aparece
+
+                let div = document.createElement('div');
+                div.className = 'fila-item';
+                let tagStr = '';
+                if(p.lado === 1) tagStr = '<div class="tag-time t1">LADO 1</div>';
+                if(p.lado === 2) tagStr = '<div class="tag-time t2">LADO 2</div>';
+                div.innerHTML = `${tagStr}<img src="${p.avatar}"><div class="nick">${nick}</div><div class="pts">${(p.pontos_fila || 0).toFixed(1)}</div>`;
+                container.appendChild(div);
+            });
+        }
+
+        function atualizarTela() {
+            if (jogo.config.zoom_level !== undefined) { zoomLevel = jogo.config.zoom_level; updateTransform(); }
+            if (jogo.config.bg_type === 'transparent') { document.body.style.backgroundImage = 'none'; document.body.style.backgroundColor = 'transparent'; }
+            else if (jogo.config.bg_type === 'color') { document.body.style.backgroundImage = 'none'; document.body.style.backgroundColor = jogo.config.bg_value; }
+            else if (jogo.config.bg_type === 'image' && jogo.config.bg_value && jogo.config.bg_value.startsWith('data:image')) { document.body.style.backgroundColor = 'transparent'; document.body.style.backgroundImage = `url('${jogo.config.bg_value}')`; }
+
+            if (document.getElementById('tela-vencedor').classList.contains('show')) return;
+
+            // --- LÓGICA DE RANKING (TELAS SECUNDÁRIAS) ---
+            if (jogo.display_mode !== 'game' && jogo.display_mode !== undefined) {
+                let rStr = localStorage.getItem('daazRankings');
+                let rData = rStr ? JSON.parse(rStr) : {diario:{}, semanal:{}, mensal:{}, geral:{}};
+                const per = jogo.display_periodo || "diario";
+
+                let nomePer = "RANKING DE HOJE";
+                if(per === "semanal") nomePer = "RANKING DA SEMANA";
+                if(per === "mensal") nomePer = "RANKING DESTE MÊS";
+                if(per === "geral") nomePer = "RANKING GERAL (HISTÓRICO)";
+
+                let dataDict = {};
+                let tituloRank = "";
+                let corRank = "gold";
+                let sufixoRank = "";
+
+                // NOVO: Renderiza a lista de quem está esperando para lutar
+                if (jogo.display_mode === 'rank_fila') {
+                    tituloRank = "⏳ PRÓXIMOS A BATALHAR";
+                    nomePer = "AO VIVO";
+                    sufixoRank = "Pts";
+                    corRank = "#f39c12";
+                    jogo.jogadores_plateia.forEach(n => {
+                        let pt = jogo.dados_jogadores[n]?.pontos_fila || 0;
+                        if (pt > 0) dataDict[n] = pt; // Só mostra na fila quem tem ponto > 0
+                    });
+                }
+                else if (jogo.display_mode === 'rank_vitorias') {
+                    tituloRank = "🏆 MAIORES APOIADORES";
+                    dataDict = rData[per]?.vitorias || {};
+                    sufixoRank = "Pts";
+                }
+                else if (jogo.display_mode === 'rank_total_wins') {
+                    tituloRank = "🥊 MAIORES VENCEDORES";
+                    dataDict = rData[per]?.vitorias_gerais || {};
+                    sufixoRank = "Wins";
+                    corRank = "#2ed573";
+                }
+                else if (jogo.display_mode === 'rank_streaks') {
+                    tituloRank = "🔥 MAIORES SEQUÊNCIAS";
+                    dataDict = rData[per]?.max_wins_seguidas || {};
+                    sufixoRank = "Seguidas";
+                    corRank = "#ff4757";
+                }
+
+                renderizarRankingUI(tituloRank, dataDict, corRank, sufixoRank, nomePer);
+                document.getElementById('ranking-view').style.display = 'flex';
+                document.getElementById('game-view').style.display = 'none';
+                return; // Encerra a função aqui para não desenhar a arena
+            }
+
+            document.getElementById('ranking-view').style.display = 'none';
+            document.getElementById('game-view').style.display = 'block';
+
+            if (jogo.lutador1 && jogo.dados_jogadores[jogo.lutador1]) {
+                document.getElementById('img-lutador1').src = jogo.dados_jogadores[jogo.lutador1].avatar;
+                document.getElementById('nome-lutador1').innerText = jogo.lutador1;
+            } else {
+                document.getElementById('img-lutador1').src = 'https://api.dicebear.com/7.x/bottts/svg?seed=Lutador1';
+                document.getElementById('nome-lutador1').innerText = 'AGUARDANDO';
+            }
+
+            if (jogo.lutador2 && jogo.dados_jogadores[jogo.lutador2]) {
+                document.getElementById('img-lutador2').src = jogo.dados_jogadores[jogo.lutador2].avatar;
+                document.getElementById('nome-lutador2').innerText = jogo.lutador2;
+            } else {
+                document.getElementById('img-lutador2').src = 'https://api.dicebear.com/7.x/bottts/svg?seed=Lutador2';
+                document.getElementById('nome-lutador2').innerText = 'AGUARDANDO';
+            }
+
+            document.getElementById('pts-1').innerText = Math.floor(jogo.pontos1);
+            document.getElementById('pts-2').innerText = Math.floor(jogo.pontos2);
+
+            let totalPts = jogo.pontos1 + jogo.pontos2;
+            let pct1 = 50, pct2 = 50;
+            if (totalPts > 0) { pct1 = (jogo.pontos1 / totalPts) * 100; pct2 = (jogo.pontos2 / totalPts) * 100; }
+
+            // Movimenta a barra
+            document.getElementById('bar-1').style.width = pct1 + '%';
+            document.getElementById('bar-2').style.width = pct2 + '%';
+
+            // Movimenta os fundos gigantes da arena e coloca a foto
+            let bg1 = document.getElementById('bg-arena-1');
+            let bg2 = document.getElementById('bg-arena-2');
+            bg1.style.width = pct1 + '%';
+            bg2.style.width = pct2 + '%';
+
+            if (jogo.lutador1 && jogo.dados_jogadores[jogo.lutador1]) {
+                bg1.style.backgroundImage = `url('${jogo.dados_jogadores[jogo.lutador1].avatar}')`;
+            } else { bg1.style.backgroundImage = 'none'; }
+
+            if (jogo.lutador2 && jogo.dados_jogadores[jogo.lutador2]) {
+                bg2.style.backgroundImage = `url('${jogo.dados_jogadores[jogo.lutador2].avatar}')`;
+            } else { bg2.style.backgroundImage = 'none'; }
+
+            // Exibe os poderes individuais em cima da barra
+            let txtP1 = document.getElementById('poder-1');
+            if (jogo.ativo && jogo.poderes && jogo.poderes[1] && Date.now() < jogo.poderes[1].fim) {
+                txtP1.innerText = jogo.poderes[1].nome; txtP1.style.display = 'block';
+            } else { txtP1.style.display = 'none'; }
+
+            let txtP2 = document.getElementById('poder-2');
+            if (jogo.ativo && jogo.poderes && jogo.poderes[2] && Date.now() < jogo.poderes[2].fim) {
+                txtP2.innerText = jogo.poderes[2].nome; txtP2.style.display = 'block';
+            } else { txtP2.style.display = 'none'; }
+
+            document.getElementById('multiplicador-txt').innerText = 'VS';
+            document.getElementById('multiplicador-txt').style.color = '#ffeaa7';
+            let timerEl = document.getElementById('tempo-batalha');
+            if(jogo.ativo) { timerEl.innerText = jogo.tempo_restante + 's'; timerEl.style.color = (jogo.tempo_restante <= 10) ? '#ff4757' : '#f1c40f'; }
+            else if (jogo.iniciando) { timerEl.innerText = 'PREPARANDO...'; timerEl.style.color = '#f39c12'; }
+            else { timerEl.innerText = 'AGUARDANDO LUTADORES...'; timerEl.style.color = '#fff'; }
+
+            renderizarFilaVisual(jogo, jogo.dados_jogadores);
+        }
+
+        function atualizarHierarquia() {
+            jogo.jogadores_plateia.sort((a, b) => {
+                let ptsA = jogo.dados_jogadores[a]?.pontos_fila || 0;
+                let ptsB = jogo.dados_jogadores[b]?.pontos_fila || 0;
+                return ptsB - ptsA;
+            });
+        }
+
+        function adicionarJogador(nick, avatar) {
+            if (!jogo.dados_jogadores[nick]) { jogo.dados_jogadores[nick] = { avatar: avatar, lado: 0, pontos_fila: 0, last_gift_times: {}, gift_counts: {} }; }
+            else if (avatar && !avatar.includes("dicebear")) { jogo.dados_jogadores[nick].avatar = avatar; }
+
+            if (jogo.lutador1 === nick || jogo.lutador2 === nick || jogo.jogadores_plateia.includes(nick)) return;
+
+            if (!jogo.lutador1) { jogo.lutador1 = nick; jogo.dados_jogadores[nick].lado = 1; }
+            else if (!jogo.lutador2) { jogo.lutador2 = nick; jogo.dados_jogadores[nick].lado = 2; }
+            else { jogo.jogadores_plateia.push(nick); }
+
+            atualizarHierarquia();
+            atualizarTela();
+        }
+
+        function checkRankingResets(rankings) {
+            const d = new Date(); const dia = d.toISOString().split('T')[0]; const mes = dia.substring(0, 7);
+            const d0 = new Date(d.getFullYear(), 0, 1); const semana = d.getFullYear() + '-W' + Math.ceil((((d - d0) / 86400000) + d0.getDay() + 1) / 7);
+            const p = { diario: dia, semanal: semana, mensal: mes, geral: 'geral' };
+            let changed = false;
+            if (rankings.id_diario !== p.diario) { rankings.diario = {vitorias:{}, palavras:{}, heroi:{}, vilao:{}}; rankings.id_diario = p.diario; changed = true; }
+            if (rankings.id_semanal !== p.semanal) { rankings.semanal = {vitorias:{}, palavras:{}, heroi:{}, vilao:{}}; rankings.id_semanal = p.semanal; changed = true; }
+            if (rankings.id_mensal !== p.mensal) { rankings.mensal = {vitorias:{}, palavras:{}, heroi:{}, vilao:{}}; rankings.id_mensal = p.mensal; changed = true; }
+            return changed;
+        }
+
+        function addRanking(categoria, nick, valor=1) {
+            try {
+                let rStr = localStorage.getItem('daazRankings');
+                let rankings = rStr ? JSON.parse(rStr) : { id_diario: '', id_semanal: '', id_mensal: '', diario: {vitorias:{}, palavras:{}, heroi:{}, vilao:{}}, semanal: {vitorias:{}, palavras:{}, heroi:{}, vilao:{}}, mensal: {vitorias:{}, palavras:{}, heroi:{}, vilao:{}}, geral: {vitorias:{}, palavras:{}, heroi:{}, vilao:{}} };
+                checkRankingResets(rankings);
+                let safeNick = nick.replace(/[.#$\[\]\/]/g, "_");
+                ['diario', 'semanal', 'mensal', 'geral'].forEach(periodo => {
+                    if(!rankings[periodo][categoria]) rankings[periodo][categoria] = {};
+                    rankings[periodo][categoria][safeNick] = (rankings[periodo][categoria][safeNick] || 0) + valor;
+                });
+                localStorage.setItem('daazRankings', JSON.stringify(rankings));
+                if (typeof window.fbcPushRankings === "function") { try { window.fbcPushRankings(rankings); } catch(err) {} }
+            } catch(e) {}
+        }
+
+        function processarEventoDaAPI(d) {
+            let evento = d.event; let dados = d.data; if(!dados) return;
+            let nick_bruto = (dados.nickname || dados.uniqueId || "").trim();
+            if (!nick_bruto || nick_bruto.toLowerCase() === "none") return;
+            let nick = nick_bruto.replace(/[.#$\[\]\/]/g, "_");
+            let avatar_url = dados.profilePictureUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${nick}`;
+            espectadoresRecentes[nick] = avatar_url;
+
+            if (!jogo.dados_jogadores[nick]) { adicionarJogador(nick, avatar_url); }
+
+            if (evento === "chat" || evento === "comment") {
+                let texto = (dados.comment || dados.text || "").trim();
+                if (texto === "1") { jogo.dados_jogadores[nick].lado = 1; dispararEfeito('aviso', `${nick_bruto} APOIA O AZUL (1)`); atualizarTela(); }
+                else if (texto === "2") { jogo.dados_jogadores[nick].lado = 2; dispararEfeito('aviso', `${nick_bruto} APOIA O VERMELHO (2)`); atualizarTela(); }
+            }
+
+            if (evento === "like") {
+                let taps = parseInt(dados.likeCount || dados.likes || 1);
+                let pontos_gerados = taps * 0.3;
+
+                let ladoEfetivo = jogo.dados_jogadores[nick].lado;
+                if (nick === jogo.lutador1) ladoEfetivo = 1;
+                if (nick === jogo.lutador2) ladoEfetivo = 2;
+
+                // Aplica o multiplicador do LADO específico
+                let calc_mult = 1;
+                if (jogo.ativo && ladoEfetivo !== 0 && jogo.poderes && jogo.poderes[ladoEfetivo]) {
+                    if (Date.now() < jogo.poderes[ladoEfetivo].fim) {
+                        calc_mult = jogo.poderes[ladoEfetivo].mult;
+                    }
+                }
+                let pontos_finais = pontos_gerados * calc_mult;
+
+                if (nick !== jogo.lutador1 && nick !== jogo.lutador2) {
+                    jogo.dados_jogadores[nick].pontos_fila += pontos_finais;
+                    atualizarHierarquia();
+                }
+
+                if (jogo.ativo && ladoEfetivo !== 0) {
+                    if (ladoEfetivo === 1) jogo.pontos1 += pontos_finais;
+                    if (ladoEfetivo === 2) jogo.pontos2 += pontos_finais;
+
+                    // Salva que essa pessoa ajudou na rodada (para o Pódio)
+                    if (!jogo.apoiadores_batalha) jogo.apoiadores_batalha = {};
+                    jogo.apoiadores_batalha[nick] = (jogo.apoiadores_batalha[nick] || 0) + pontos_finais;
+                }
+                atualizarTela();
+            }
+
+            if (evento === "gift") {
+                let raw_pres = (dados.giftName || dados.name || "");
+                let pres = raw_pres.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+
+                let qtd_combo = parseInt(dados.repeatCount || dados.giftCount || dados.count || 1);
+                let valorMoedas = parseInt(dados.diamondCount || 1) * qtd_combo;
+                let pontos_gerados = valorMoedas * 10;
+
+                let cfg = jogo.config;
+                let c_luva = (cfg.presente_luva || "luva").toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+                let c_x2 = (cfg.presente_x2 || "rosa").toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+                let c_x3 = (cfg.presente_x3 || "coracao").toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+
+                let ladoEfetivo = jogo.dados_jogadores[nick].lado;
+                if (nick === jogo.lutador1) ladoEfetivo = 1;
+                if (nick === jogo.lutador2) ladoEfetivo = 2;
+
+                if (jogo.ativo && ladoEfetivo !== 0) {
+                    if (c_luva !== "" && pres.includes(c_luva)) {
+                        // LUVA: Atordoa o oponente (Multiplicador 0 por 10s)
+                        let ladoInimigo = (ladoEfetivo === 1) ? 2 : 1;
+                        if (!jogo.poderes) jogo.poderes = { 1: { mult: 1, fim: 0, nome: "" }, 2: { mult: 1, fim: 0, nome: "" } };
+
+                        jogo.poderes[ladoInimigo].mult = 0;
+                        jogo.poderes[ladoInimigo].fim = Date.now() + 10000;
+                        jogo.poderes[ladoInimigo].nome = "🥊 STUN!";
+
+                        let boost = 500;
+                        if (ladoEfetivo === 1) jogo.pontos1 += boost;
+                        if (ladoEfetivo === 2) jogo.pontos2 += boost;
+                        dispararEfeito('aviso', `🥊 LUVA DE ${nick_bruto}! INIMIGO ATORDOADO!`);
+                    }
+                    else if (c_x2 !== "" && pres.includes(c_x2)) {
+                        if (!jogo.poderes) jogo.poderes = { 1: { mult: 1, fim: 0, nome: "" }, 2: { mult: 1, fim: 0, nome: "" } };
+                        jogo.poderes[ladoEfetivo].mult = 2;
+                        jogo.poderes[ladoEfetivo].nome = "🔥 x2";
+                        jogo.poderes[ladoEfetivo].fim = Date.now() + 20000;
+                        dispararEfeito('aviso', `🔥 LADO ${ladoEfetivo} ESTÁ 2X MAIS FORTE! 🔥`);
+                    }
+                    else if (c_x3 !== "" && pres.includes(c_x3)) {
+                        if (!jogo.poderes) jogo.poderes = { 1: { mult: 1, fim: 0, nome: "" }, 2: { mult: 1, fim: 0, nome: "" } };
+                        jogo.poderes[ladoEfetivo].mult = 3;
+                        jogo.poderes[ladoEfetivo].nome = "⚡ x3";
+                        jogo.poderes[ladoEfetivo].fim = Date.now() + 20000;
+                        dispararEfeito('aviso', `⚡ LADO ${ladoEfetivo} COM PODER X3! ⚡`);
+                    }
+                }
+
+                // Aplica o multiplicador do LADO específico
+                let calc_mult = 1;
+                if (jogo.ativo && ladoEfetivo !== 0 && jogo.poderes && jogo.poderes[ladoEfetivo]) {
+                    if (Date.now() < jogo.poderes[ladoEfetivo].fim) {
+                        calc_mult = jogo.poderes[ladoEfetivo].mult;
+                    }
+                }
+
+                let pontos_finais = pontos_gerados * calc_mult;
+
+                if (nick !== jogo.lutador1 && nick !== jogo.lutador2) {
+                    jogo.dados_jogadores[nick].pontos_fila += pontos_finais;
+                    atualizarHierarquia();
+                }
+
+                if (jogo.ativo && ladoEfetivo !== 0) {
+                    if (ladoEfetivo === 1) jogo.pontos1 += pontos_finais;
+                    if (ladoEfetivo === 2) jogo.pontos2 += pontos_finais;
+
+                    if (!jogo.apoiadores_batalha) jogo.apoiadores_batalha = {};
+                    jogo.apoiadores_batalha[nick] = (jogo.apoiadores_batalha[nick] || 0) + pontos_finais;
+                }
+
+                addRanking("vitorias", nick, pontos_finais);
+                atualizarTela();
+            }
+        }
+
+        // MOTOR PRINCIPAL
+        setInterval(() => {
+            if (window.rdmPerfil === "gratuito" || window.rdmPerfil === "plus premium") {
+                let horaAtual = Date.now();
+                if (!window.rdmSessaoIniciada) window.rdmSessaoIniciada = horaAtual;
+                let tempoDecorridoMs = horaAtual - window.rdmSessaoIniciada;
+                let limiteMs = (window.rdmPerfil === "gratuito") ? (2 * 60 * 60 * 1000) : (42 * 60 * 60 * 1000);
+                if (tempoDecorridoMs >= limiteMs) {
+                    jogo.ativo = false; jogo.jogadores_plateia = []; jogo.lutador1 = null; jogo.lutador2 = null; atualizarTela();
+                    let blockScreen = document.getElementById('rdm-block-screen');
+                    if (!blockScreen) {
+                        blockScreen = document.createElement('div'); blockScreen.id = 'rdm-block-screen';
+                        blockScreen.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.95); z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center;';
+                        blockScreen.innerHTML = `<h1 style='color:#facc15; font-size:40px; text-shadow:0 0 20px #facc15;'>⏱️ TEMPO ESGOTADO!</h1>`;
+                        document.body.appendChild(blockScreen);
+                    }
+                    return;
+                }
+            }
+
+            let cmdStr = localStorage.getItem('daazCommand');
+            if (cmdStr) {
+                let cmd = JSON.parse(cmdStr);
+                if (cmd.ts !== jogo.lastCmdTs) {
+                    jogo.lastCmdTs = cmd.ts;
+                    if (cmd.action === 'display_mode') { jogo.display_mode = cmd.value; atualizarTela(); }
+                    if (cmd.action === 'display_periodo') { jogo.display_periodo = cmd.value; atualizarTela(); }
+                    if (cmd.action === 'update_bg') { atualizarConfig(); atualizarTela(); }
+                    if (cmd.action === 'add_player') { adicionarJogador(cmd.value, `https://api.dicebear.com/7.x/bottts/svg?seed=${cmd.value}`); }
+                    if (cmd.action === 'remove_player') {
+                        if (jogo.lutador1 === cmd.value) jogo.lutador1 = null;
+                        if (jogo.lutador2 === cmd.value) jogo.lutador2 = null;
+                        jogo.jogadores_plateia = jogo.jogadores_plateia.filter(n => n !== cmd.value);
+                        if (jogo.ativo && (!jogo.lutador1 || !jogo.lutador2)) { encerrarBatalha(); }
+                        atualizarTela();
+                    }
+                    if (cmd.action === 'start_game') {
+                        let qtdTotal = (jogo.lutador1 ? 1 : 0) + (jogo.lutador2 ? 1 : 0) + jogo.jogadores_plateia.length;
+                        if (qtdTotal >= 2 && !jogo.ativo && !jogo.iniciando) {
+                            if (!jogo.lutador1) { jogo.lutador1 = jogo.jogadores_plateia.shift(); jogo.dados_jogadores[jogo.lutador1].lado = 1; }
+                            if (!jogo.lutador2) { jogo.lutador2 = jogo.jogadores_plateia.shift(); jogo.dados_jogadores[jogo.lutador2].lado = 2; }
+                            iniciarBatalha();
+                        } else if (jogo.ativo || jogo.iniciando) {
+                            dispararEfeito('aviso', "A BATALHA JÁ ESTÁ ROLANDO!");
+                        } else {
+                            dispararEfeito('aviso', "PRECISA DE 2 JOGADORES NA FILA PARA COMEÇAR!");
+                        }
+                    }
+                }
+            }
+
+            // AUTO-START: Inicia sozinho se os 2 entrarem E o Automático estiver LIGADO!
+            const telaVencedorAtiva = document.getElementById('tela-vencedor').classList.contains('show');
+            if (jogo.config.auto_battle !== false && !jogo.ativo && jogo.lutador1 && jogo.lutador2 && !telaVencedorAtiva) {
+                iniciarBatalha();
+            }
+
+            if (jogo.ativo && !jogo.iniciando) {
+                jogo.tempo_restante--;
+                if (jogo.tempo_restante <= 0) { encerrarBatalha(); }
+                else { if (jogo.tempo_restante <= 5) { playTick(800); } atualizarTela(); }
+            }
+        }, 1000);
+
+        let conexaoNuvemEstabelecida = false; let wsNuvem = null; let wsTikfinity = null; let lastTiktokUser = "";
+
+        function conectarNuvem() {
+            let targetUser = jogo.config.tiktok_username || window.rdmUser;
+            if (!targetUser || targetUser === "visitante") return;
+            if (conexaoNuvemEstabelecida && lastTiktokUser === targetUser) return;
+            if (wsNuvem && wsNuvem.readyState === WebSocket.CONNECTING) return;
+            if (wsNuvem) wsNuvem.close();
+            lastTiktokUser = targetUser;
+            wsNuvem = new WebSocket("wss://torre-de-controle-rdm.onrender.com:443/");
+            wsNuvem.onopen = () => { conexaoNuvemEstabelecida = true; wsNuvem.send(JSON.stringify({ action: "connect", tiktok_user: targetUser })); dispararEfeito('aviso', `☁️ NUVEM LIGADA! (@${targetUser})`); };
+            wsNuvem.onmessage = (event) => { try { processarEventoDaAPI(JSON.parse(event.data)); } catch(e) {} };
+            wsNuvem.onclose = () => { conexaoNuvemEstabelecida = false; wsNuvem = null; };
+        }
+
+        function verificarEConectar() {
+            if (!wsTikfinity || wsTikfinity.readyState === WebSocket.CLOSED) {
+                wsTikfinity = new WebSocket("ws://127.0.0.1:21213/");
+                wsTikfinity.onopen = () => { if (wsNuvem) { wsNuvem.close(); wsNuvem = null; conexaoNuvemEstabelecida = false; } };
+                wsTikfinity.onmessage = (event) => { try { processarEventoDaAPI(JSON.parse(event.data)); } catch(e) {} };
+                wsTikfinity.onerror = () => { conectarNuvem(); };
+                wsTikfinity.onclose = () => { wsTikfinity = null; };
+            } else if (wsTikfinity.readyState === WebSocket.OPEN) {
+                if (wsNuvem) { wsNuvem.close(); wsNuvem = null; conexaoNuvemEstabelecida = false; }
+            }
+        }
+        setInterval(verificarEConectar, 2000);
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyB2LNWktWEwYLuZxwr8oc9NpcjFz3GU5qc", authDomain: "authrdm-a82a6.firebaseapp.com", databaseURL: "https://authrdm-a82a6-default-rtdb.firebaseio.com", projectId: "authrdm-a82a6" };
+        const app = initializeApp(firebaseConfig); const db = getDatabase(app);
+        const rdmUser = localStorage.getItem('rdm_user_tiktok') || localStorage.getItem('rdm_user') || "visitante";
+        const safeUser = rdmUser.replace(/[.#$\[\]]/g, "_");
+
+        window.fbcPushRankings = function(rankingsData) { set(ref(db, `usuarios/${safeUser}/controle_remoto/daaz_rankings`), rankingsData); };
+        onValue(ref(db, `usuarios/${safeUser}/controle_remoto/daaz_config`), (snapshot) => {
+            if(snapshot.exists()) { localStorage.setItem('daazConfig', JSON.stringify(snapshot.val())); if (typeof window.atualizarConfig === "function") window.atualizarConfig(); if (typeof window.atualizarTela === "function") window.atualizarTela(); }
+        });
+        onValue(ref(db, `usuarios/${safeUser}/controle_remoto/daaz_comando`), (snapshot) => {
+            if(snapshot.exists()) { localStorage.setItem('daazCommand', JSON.stringify(snapshot.val())); }
+        });
+        onValue(ref(db, `usuarios/${safeUser}/controle_remoto/daaz_rankings`), (snapshot) => {
+            if(snapshot.exists()) { localStorage.setItem('daazRankings', JSON.stringify(snapshot.val())); if (typeof window.atualizarTela === "function") window.atualizarTela(); }
+        });
+    </script>
+</body>
+</html>

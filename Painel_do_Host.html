@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Batalha TikTok</title>
+    <style>
+        body { background-color: #0d1117; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; margin: 0; }
+        h2 { text-align: center; color: #ff4757; margin-top: 0; margin-bottom: 5px; }
+        #licenca-info { text-align: center; font-size: 0.9em; color: #2ed573; font-weight: bold; margin-bottom: 20px; }
+        fieldset { border: 1px solid #30363d; border-radius: 8px; padding: 15px; margin-bottom: 15px; background: #12151b; }
+        legend { font-weight: bold; color: #2ed573; padding: 0 5px; }
+        label { font-size: 0.85rem; color: #c9d1d9; font-weight: bold; }
+        input[type="text"], input[type="number"], select {
+            width: 100%; padding: 8px; margin-top: 5px; margin-bottom: 10px;
+            background: #161b22; border: 1px solid #30363d; color: white;
+            border-radius: 5px; box-sizing: border-box; font-size: 0.9rem;
+        }
+        input[type="range"] { width: 100%; margin-top: 5px; margin-bottom: 15px; }
+        .btn-save { width: 100%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-bottom: 10px; transition: 0.2s; }
+        .btn-save:hover { background: #2980b9; }
+        .btn-start { width: 100%; background: #ff4757; color: white; padding: 15px; font-weight: 900; font-size: 1.2rem; border: none; border-radius: 5px; cursor: pointer; transition: 0.2s; text-transform: uppercase; }
+        .btn-start:hover { background: #ff6b81; }
+        .radio-group { display: flex; gap: 15px; margin-bottom: 10px; flex-wrap: wrap; }
+        .flex-row { display: flex; gap: 10px; align-items: center;}
+        .flex-col { flex: 1; }
+
+        .caixa-lista { margin-top: 10px; max-height: 150px; overflow-y: auto; background: #161b22; border: 1px solid #30363d; border-radius: 5px; padding: 5px; }
+        .player-item { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #30363d; font-size: 0.85rem; }
+        .btn-remove { color: #ff4757; cursor: pointer; font-weight: bold; padding: 0 5px; border: 1px solid #ff4757; border-radius: 3px; }
+        .btn-add { color: #2ed573; cursor: pointer; font-weight: bold; padding: 0 5px; border: 1px solid #2ed573; border-radius: 3px; }
+
+        .btn-modo { flex: 1; padding: 10px; background: #222; color: #fff; border: 1px solid #555; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.8rem;}
+        .btn-modo.active { background: #f39c12; color: #000; border-color: #f39c12; }
+
+        details { background: #161b22; border: 1px solid #30363d; border-radius: 5px; margin-bottom: 10px; padding: 10px; }
+        summary { font-weight: bold; color: #f39c12; cursor: pointer; outline: none; list-style: none; }
+        summary::-webkit-details-marker { display: none; }
+        details p { font-size: 0.85rem; color: #ccc; line-height: 1.4; margin-top: 10px; margin-bottom: 0; }
+        ul.ajuda-lista { margin-top: 5px; margin-bottom: 0; padding-left: 20px; font-size: 0.85rem; color: #ccc; }
+        ul.ajuda-lista li { margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+    <h2>BATALHA DE INSCRITOS</h2>
+    <div id="licenca-info">Carregando licença...</div>
+
+    <fieldset>
+        <legend>📺 Controlo do Ecrã</legend>
+        <input type="hidden" id="tiktok_username" value="">
+        <div class="flex-row" style="flex-wrap: wrap; gap: 5px;">
+            <button class="btn-modo active" id="btn_game" onclick="mudarEcra('game')">Arena</button>
+            <button class="btn-modo" style="background: #8e44ad; border-color: #8e44ad; color: white;" id="btn_rank_fila" onclick="mudarEcra('rank_fila')">Fila de Batalha</button>
+            <button class="btn-modo" id="btn_rank_vitorias" onclick="mudarEcra('rank_vitorias')">Top Apoiadores</button>
+            <button class="btn-modo" id="btn_rank_total_wins" onclick="mudarEcra('rank_total_wins')">Total Wins</button>
+            <button class="btn-modo" id="btn_rank_streaks" onclick="mudarEcra('rank_streaks')">Top Streaks</button>
+        </div>
+        <button onclick="limparRankingDia()" style="margin-top: 10px; background: #ff4757; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.8rem;">Limpar Rankings de Hoje</button>
+    </fieldset>
+
+    <fieldset>
+        <legend>📖 Como Funciona</legend>
+        <details>
+            <summary>🕹️ Regras p/ o Público</summary>
+            <p>
+                <strong>Entrar na Fila:</strong> Envie Taps ou Presentes. Os maiores pontuadores ficam no topo da fila.<br>
+                <strong>Apoiar Lutador:</strong> Digite <strong>1</strong> para apoiar o lado esquerdo ou <strong>2</strong> para o lado direito.<br>
+                <strong>Sistema de Pontos:</strong> 1 Tap = 0,3 Pontos | 1 Moeda (Presente) = 10 Pontos.<br>
+                <strong>Batalha:</strong> Quando um jogador doa pontos, ele sobe na Fila e, ao mesmo tempo, empurra a barra de vida do seu lutador favorito.<br>
+                <strong>Fim da Rodada:</strong> O vencedor fica na mesa para a próxima luta. O perdedor volta com ZERO pontos pro fim da fila.
+            </p>
+        </details>
+    </fieldset>
+
+    <fieldset>
+        <legend>Gerir Fila de Jogadores</legend>
+        <input type="text" id="filtro_jogadores" placeholder="🔍 Buscar jogador na live..." onkeyup="filtrarListas()" style="background: #222; border: 1px solid #ff4757; color: white; border-radius: 5px; padding: 10px; margin-bottom: 15px;">
+
+        <label style="color: #f39c12;">Espectadores na Live (Clique [+] para add na Fila):</label>
+        <div id="lista-espectadores" class="caixa-lista" style="margin-bottom: 15px;"></div>
+
+        <label style="color: #2ed573;">Fila Atual (Clique [X] para remover):</label>
+        <div id="lista-jogadores-painel" class="caixa-lista"></div>
+    </fieldset>
+
+    <fieldset>
+        <legend>🔗 Link para OBS / TikTok Live Studio</legend>
+        <div class="flex-row">
+            <input type="text" id="obs-link" readonly style="margin-bottom: 0; color: #f39c12; font-weight: bold; background: #222;">
+            <button onclick="copiarLinkOBS()" style="background: #3498db; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: bold;">📋 COPIAR</button>
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>Visuais e Configurações</legend>
+        <label style="cursor: pointer; display: block; margin-bottom: 15px; color: #2ed573;">
+            <input type="checkbox" id="auto_battle" onchange="salvarConfig(true)" checked> 🤖 Início Automático de Batalhas (Desmarque para pausar)
+        </label>
+        <div class="radio-group">
+            <label><input type="radio" name="bg_type" value="transparent" onchange="mudarFundoTipo()"> Transparente (OBS)</label>
+            <label><input type="radio" name="bg_type" value="color" checked onchange="mudarFundoTipo()"> Cor Sólida</label>
+            <label><input type="radio" name="bg_type" value="image" onchange="mudarFundoTipo()"> Imagem</label>
+        </div>
+        <div id="div_bg_color">
+            <input type="color" id="bg_color" value="#1a1a24" style="width: 100%; height: 40px; padding: 0; cursor: pointer;" onchange="enviarFundoCor()">
+        </div>
+        <div id="div_bg_image" style="display: none;">
+            <input type="file" id="bg_image" accept="image/*" onchange="enviarFundoImagem(event)">
+        </div>
+
+        <div class="flex-row" style="margin-top: 15px;">
+            <div class="flex-col">
+                <label>Tempo de cada Batalha (Segundos):</label>
+                <input type="number" id="tempo_rodada" value="60">
+            </div>
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>Sistema de Presentes Especiais</legend>
+        <div class="flex-row">
+            <div class="flex-col">
+                <label>🥊 Luva (Atordoa Inimigo / Boost):</label>
+                <input type="text" id="pres_luva" value="Luva">
+            </div>
+            <div class="flex-col">
+                <label>🔥 Tudo x2 (20s):</label>
+                <input type="text" id="pres_x2" value="Rosa">
+            </div>
+        </div>
+        <div class="flex-row">
+            <div class="flex-col">
+                <label>⚡ Tudo x3 (20s):</label>
+                <input type="text" id="pres_x3" value="Coracao">
+            </div>
+        </div>
+    </fieldset>
+
+    <button class="btn-save" onclick="salvarConfig(false)">Salvar Configurações</button>
+    <button class="btn-start" onclick="iniciarJogo()">INICIAR PRIMEIRA BATALHA</button>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('u') && urlParams.has('p')) {
+            localStorage.setItem('rdm_user', urlParams.get('u'));
+            localStorage.setItem('rdm_perfil', urlParams.get('p'));
+        }
+
+        let currentBgType = 'color';
+        let currentBgValue = '#1a1a24';
+        let lastCfgStr = "";
+
+        function verificarStatusRDM() {
+            let user = localStorage.getItem('rdm_user_tiktok') || localStorage.getItem('rdm_user');
+            let perfil = localStorage.getItem('rdm_perfil');
+            let lic = document.getElementById('licenca-info');
+            if (user && perfil) {
+                if(lic) { lic.innerText = `✅ Logado como: ${user} (${perfil.toUpperCase()})`; lic.style.color = "#2ecc71"; }
+            } else {
+                if(lic) { lic.innerText = "❌ Desconectado. Faça login no site RDM Studio."; lic.style.color = "#e74c3c"; }
+            }
+        }
+        verificarStatusRDM();
+        setInterval(verificarStatusRDM, 5000);
+
+        function atualizarLinkOBS() {
+            let user = localStorage.getItem('rdm_user_tiktok') || localStorage.getItem('rdm_user') || "visitante";
+            let baseURL = window.location.href.replace('Painel_do_Host.html', 'index.html').split('?')[0];
+            document.getElementById('obs-link').value = `${baseURL}?u=${user}&p=pro`;
+        }
+        atualizarLinkOBS();
+
+        function copiarLinkOBS() {
+            let input = document.getElementById('obs-link');
+            input.select(); document.execCommand("copy");
+            alert("✅ Link copiado! Pode colar no TikTok Live Studio ou OBS.");
+        }
+
+        function carregarConfigInputs(cfgStr) {
+            lastCfgStr = cfgStr; let cfg = JSON.parse(cfgStr);
+            document.getElementById('tiktok_username').value = cfg.tiktok_username || "";
+            document.getElementById('tempo_rodada').value = cfg.tempo_rodada || 60;
+            document.getElementById('auto_battle').checked = cfg.auto_battle !== false;
+
+            document.getElementById('pres_luva').value = cfg.presente_luva || "Luva";
+            document.getElementById('pres_x2').value = cfg.presente_x2 || "Rosa";
+            document.getElementById('pres_x3').value = cfg.presente_x3 || "Coracao";
+
+            currentBgType = cfg.bg_type || 'color'; currentBgValue = cfg.bg_value || '#1a1a24';
+            let radio = document.querySelector(`input[name="bg_type"][value="${currentBgType}"]`); if(radio) radio.checked = true;
+            mudarFundoTipo(true);
+            if(currentBgType === 'color' && currentBgValue !== 'transparent') document.getElementById('bg_color').value = currentBgValue;
+        }
+
+        setInterval(() => {
+            let stateStr = localStorage.getItem('daazState');
+            if (stateStr) {
+                let state = JSON.parse(stateStr);
+                // A fila de jogadores vem ordenada pelo index.html
+                renderizarListaRoda(state.jogadores || [], state.dados_jogadores || {});
+                renderizarEspectadores(state.espectadores || {}, state.jogadores || []);
+                atualizarBotoesEcra(state.display_mode || 'game');
+                filtrarListas();
+            }
+            let cfgStr = localStorage.getItem('daazConfig');
+            if (cfgStr && cfgStr !== lastCfgStr) {
+                if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') carregarConfigInputs(cfgStr);
+            }
+        }, 1000);
+
+        window.onload = () => { let initialCfg = localStorage.getItem('daazConfig'); if (initialCfg) carregarConfigInputs(initialCfg); };
+
+        function mudarFundoTipo(apenasVisor = false) {
+            let selected = document.querySelector('input[name="bg_type"]:checked');
+            if(selected) currentBgType = selected.value;
+            document.getElementById('div_bg_color').style.display = currentBgType === 'color' ? 'block' : 'none';
+            document.getElementById('div_bg_image').style.display = currentBgType === 'image' ? 'block' : 'none';
+            if(!apenasVisor) salvarConfig(true);
+        }
+
+        function enviarFundoCor() { currentBgValue = document.getElementById('bg_color').value; salvarConfig(true); }
+        function enviarFundoImagem(event) {
+            const file = event.target.files[0]; if(!file) return; const reader = new FileReader();
+            reader.onload = function(e) { currentBgValue = e.target.result; salvarConfig(true); };
+            reader.readAsDataURL(file);
+        }
+
+        function enviarComando(action, value = null) { localStorage.setItem('daazCommand', JSON.stringify({ ts: Date.now(), action: action, value: value })); }
+        function mudarEcra(modo) { document.querySelectorAll('.btn-modo').forEach(btn => btn.classList.remove('active')); let btn = document.getElementById('btn_' + modo); if(btn) btn.classList.add('active'); enviarComando('display_mode', modo); }
+        function limparRankingDia() { if(confirm("TEM CERTEZA que deseja apagar todos os pontos de HOJE?")) enviarComando('limpar_diario'); }
+
+        function renderizarListaRoda(jogadores, dados) {
+            const container = document.getElementById('lista-jogadores-painel'); container.innerHTML = '';
+            if (jogadores.length === 0) { container.innerHTML = '<div style="text-align:center; color:#666; font-size:0.8rem; padding:10px;">Fila vazia</div>'; return; }
+            jogadores.forEach(nick => {
+                let pts = dados[nick]?.pontos_fila || 0;
+                let ptsStr = `<span style="color:gold;font-size:0.8rem;margin-left:5px;">⭐ ${pts.toFixed(1)} pts</span>`;
+                const div = document.createElement('div'); div.className = 'player-item';
+                div.innerHTML = `<span>${nick} ${ptsStr}</span> <span class="btn-remove" onclick="removerManual('${nick}')">X</span>`;
+                container.appendChild(div);
+            });
+        }
+
+        function renderizarEspectadores(espectadores, jogadores_roda) {
+            const container = document.getElementById('lista-espectadores'); container.innerHTML = '';
+            const chaves = Object.keys(espectadores);
+            if (chaves.length === 0) { container.innerHTML = '<div style="text-align:center; color:#666; font-size:0.8rem; padding:10px;">Nenhuma interação ainda</div>'; return; }
+            chaves.forEach(nick => {
+                if (!jogadores_roda.includes(nick)) {
+                    let div = document.createElement('div'); div.className = 'player-item';
+                    div.innerHTML = `<span><img src="${espectadores[nick]}" style="width:15px; border-radius:50%; vertical-align:middle; margin-right:5px;">${nick}</span> <span class="btn-add" onclick="adicionarDirecto('${nick}')">[+]</span>`;
+                    container.appendChild(div);
+                }
+            });
+        }
+
+        function filtrarListas() { let f = document.getElementById('filtro_jogadores').value.toUpperCase(); document.querySelectorAll('.caixa-lista .player-item').forEach(item => { item.style.display = item.querySelector('span').innerText.toUpperCase().includes(f) ? "flex" : "none"; }); }
+        function adicionarDirecto(nick) { enviarComando('add_player', nick); }
+        function removerManual(nick) { enviarComando('remove_player', nick); }
+        function atualizarBotoesEcra(modoAtual) { document.querySelectorAll('.btn-modo').forEach(btn => btn.classList.remove('active')); const ativo = document.getElementById('btn_' + modoAtual); if(ativo) ativo.classList.add('active'); }
+
+        function salvarConfig(silencioso = false) {
+            let valTempo = parseInt(document.getElementById('tempo_rodada').value); if (isNaN(valTempo)) valTempo = 60;
+
+            const config = {
+                tiktok_username: document.getElementById('tiktok_username').value,
+                tempo_rodada: valTempo,
+                auto_battle: document.getElementById('auto_battle').checked,
+                presente_luva: document.getElementById('pres_luva').value,
+                presente_x2: document.getElementById('pres_x2').value,
+                presente_x3: document.getElementById('pres_x3').value,
+                bg_type: currentBgType,
+                bg_value: currentBgValue
+            };
+            let cfgStr = JSON.stringify(config); localStorage.setItem('daazConfig', cfgStr); lastCfgStr = cfgStr;
+            enviarComando('update_bg');
+            if (!silencioso) alert("Configurações salvas com sucesso!");
+        }
+
+        function iniciarJogo() {
+            enviarComando('start_game');
+        }
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyB2LNWktWEwYLuZxwr8oc9NpcjFz3GU5qc", authDomain: "authrdm-a82a6.firebaseapp.com", databaseURL: "https://authrdm-a82a6-default-rtdb.firebaseio.com", projectId: "authrdm-a82a6" };
+        const app = initializeApp(firebaseConfig); const db = getDatabase(app);
+
+        const originalSalvar = window.salvarConfig;
+        window.salvarConfig = function(silencioso = false) {
+            originalSalvar(silencioso);
+            const rdmUser = localStorage.getItem('rdm_user_tiktok') || localStorage.getItem('rdm_user') || "visitante";
+            const safeUser = rdmUser.replace(/[.#$\[\]]/g, "_");
+            let configStr = localStorage.getItem('daazConfig');
+            if(configStr) set(ref(db, `usuarios/${safeUser}/controle_remoto/daaz_config`), JSON.parse(configStr));
+        };
+
+        const originalEnviar = window.enviarComando;
+        window.enviarComando = function(action, value = null) {
+            originalEnviar(action, value);
+            const rdmUser = localStorage.getItem('rdm_user_tiktok') || localStorage.getItem('rdm_user') || "visitante";
+            const safeUser = rdmUser.replace(/[.#$\[\]]/g, "_");
+            set(ref(db, `usuarios/${safeUser}/controle_remoto/daaz_comando`), { ts: Date.now(), action: action, value: value });
+        };
+    </script>
+</body>
+</html>
