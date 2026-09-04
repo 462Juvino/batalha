@@ -43,6 +43,13 @@
         .lutador-box.right img { border-color: #d63031; box-shadow: 0 0 40px rgba(214, 48, 49, 0.7); }
         .lutador-nome { margin-top: 15px; font-size: 1.5rem; font-weight: 900; background: rgba(0,0,0,0.9); padding: 5px 15px; border-radius: 12px; text-transform: uppercase; border: 2px solid #555; text-align: center; width: 90%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
 
+        /* --- ESTILOS DA PLATEIA VIP --- */
+        .plateia-container { width: 90%; margin-top: 10px; display: flex; flex-direction: column; gap: 5px; align-items: center; z-index: 60;}
+        .plateia-item { display: flex; align-items: center; background: rgba(0,0,0,0.7); padding: 4px 10px; border-radius: 20px; width: 100%; box-sizing: border-box; border: 1px solid #444; box-shadow: 0 4px 10px rgba(0,0,0,0.5);}
+        .plateia-item img { width: 25px; height: 25px; border-radius: 50%; margin-right: 8px; border: 1px solid #fff; object-fit: cover;}
+        .plateia-item .nick { flex: 1; font-size: 0.8rem; font-weight: bold; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: none;}
+        .plateia-item .pts { font-size: 0.9rem; color: gold; font-weight: 900; }
+
         .tempo-batalha { position: absolute; top: 3%; left: 50%; transform: translateX(-50%); font-size: 3.5rem; font-weight: 900; color: #f1c40f; text-shadow: 0 0 15px rgba(0, 0, 0, 0.8), 0 0 5px rgba(243, 156, 18, 0.8); z-index: 100; }
 
         .apoiador-podio { display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 10px; border: 1px solid #444; width: 28vw; max-width: 100px;}
@@ -146,15 +153,17 @@
                     <div class="pts-text right" id="pts-2">0</div>
                 </div>
 
-                <!-- Os Dois Lutadores -->
+                <!-- Os Dois Lutadores e suas Plateias -->
                 <div class="lutadores-area">
                     <div class="lutador-box left">
                         <img id="img-lutador1" src="https://api.dicebear.com/7.x/bottts/svg?seed=Lutador1">
                         <div class="lutador-nome" id="nome-lutador1">AGUARDANDO</div>
+                        <div class="plateia-container" id="plateia-1"></div>
                     </div>
                     <div class="lutador-box right">
                         <img id="img-lutador2" src="https://api.dicebear.com/7.x/bottts/svg?seed=Lutador2">
                         <div class="lutador-nome" id="nome-lutador2">AGUARDANDO</div>
+                        <div class="plateia-container" id="plateia-2"></div>
                     </div>
                 </div>
 
@@ -323,7 +332,8 @@
                 1: { mult: 1, fim: 0, nome: "" },
                 2: { mult: 1, fim: 0, nome: "" }
             };
-            jogo.apoiadores_batalha = {}; // Zera os apoiadores da rodada atual
+            // Cria os baldes separados de apoiadores para cada lado
+            jogo.apoiadores_batalha = { 1: {}, 2: {} };
 
             dispararEfeito('aviso', "⚔️ A BATALHA COMEÇOU! ⚔️");
             atualizarTela();
@@ -345,8 +355,11 @@
                 jogo.wins_seguidas = 1;
             }
 
-            // Separa os Top 3 Apoiadores desta Batalha Específica
-            let topApoiadores = Object.entries(jogo.apoiadores_batalha || {})
+            // Descobre qual foi o lado que ganhou
+            let ladoVencedor = (vencedor === jogo.lutador1) ? 1 : 2;
+
+            // Separa os Top 3 Apoiadores APENAS do lado vencedor!
+            let topApoiadores = Object.entries(jogo.apoiadores_batalha[ladoVencedor] || {})
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 3)
                 .map(item => ({ nick: item[0], pts: item[1], avatar: jogo.dados_jogadores[item[0]]?.avatar || '' }));
@@ -618,6 +631,35 @@
             else if (jogo.iniciando) { timerEl.innerText = 'PREPARANDO...'; timerEl.style.color = '#f39c12'; }
             else { timerEl.innerText = 'AGUARDANDO LUTADORES...'; timerEl.style.color = '#fff'; }
 
+            // --- LÓGICA DE RENDERIZAR A PLATEIA VIP (TOP 3 AO VIVO) ---
+            [1, 2].forEach(lado => {
+                let container = document.getElementById(`plateia-${lado}`);
+                if (container) {
+                    container.innerHTML = ''; // Limpa a plateia atual
+
+                    if (jogo.ativo && jogo.apoiadores_batalha && jogo.apoiadores_batalha[lado]) {
+                        // Pega os pontos desse lado, ordena do maior pro menor, e pega os 3 primeiros
+                        let topApoiadoresLado = Object.entries(jogo.apoiadores_batalha[lado])
+                            .sort((a, b) => b[1] - a[1])
+                            .slice(0, 3);
+
+                        topApoiadoresLado.forEach(item => {
+                            let nick = item[0];
+                            let pts = item[1];
+                            let avatar = jogo.dados_jogadores[nick]?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${nick}`;
+
+                            container.innerHTML += `
+                                <div class="plateia-item">
+                                    <img src="${avatar}">
+                                    <div class="nick">${nick}</div>
+                                    <div class="pts">${Math.floor(pts)}</div>
+                                </div>
+                            `;
+                        });
+                    }
+                }
+            });
+
             renderizarFilaVisual(jogo, jogo.dados_jogadores);
         }
 
@@ -711,9 +753,10 @@
                     if (ladoEfetivo === 1) jogo.pontos1 += pontos_finais;
                     if (ladoEfetivo === 2) jogo.pontos2 += pontos_finais;
 
-                    // Salva que essa pessoa ajudou na rodada (para o Pódio)
-                    if (!jogo.apoiadores_batalha) jogo.apoiadores_batalha = {};
-                    jogo.apoiadores_batalha[nick] = (jogo.apoiadores_batalha[nick] || 0) + pontos_finais;
+                    // Salva que essa pessoa ajudou na rodada (no LADO específico)
+                    if (!jogo.apoiadores_batalha) jogo.apoiadores_batalha = { 1: {}, 2: {} };
+                    if (!jogo.apoiadores_batalha[ladoEfetivo]) jogo.apoiadores_batalha[ladoEfetivo] = {};
+                    jogo.apoiadores_batalha[ladoEfetivo][nick] = (jogo.apoiadores_batalha[ladoEfetivo][nick] || 0) + pontos_finais;
                 }
                 atualizarTela();
             }
@@ -785,8 +828,9 @@
                     if (ladoEfetivo === 1) jogo.pontos1 += pontos_finais;
                     if (ladoEfetivo === 2) jogo.pontos2 += pontos_finais;
 
-                    if (!jogo.apoiadores_batalha) jogo.apoiadores_batalha = {};
-                    jogo.apoiadores_batalha[nick] = (jogo.apoiadores_batalha[nick] || 0) + pontos_finais;
+                    if (!jogo.apoiadores_batalha) jogo.apoiadores_batalha = { 1: {}, 2: {} };
+                    if (!jogo.apoiadores_batalha[ladoEfetivo]) jogo.apoiadores_batalha[ladoEfetivo] = {};
+                    jogo.apoiadores_batalha[ladoEfetivo][nick] = (jogo.apoiadores_batalha[ladoEfetivo][nick] || 0) + pontos_finais;
                 }
 
                 addRanking("vitorias", nick, pontos_finais);
